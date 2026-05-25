@@ -33,7 +33,8 @@ export default function SkillRadarCard() {
     { label: "Product", value: 75 },
   ];
 
-  const skills = displaySkills.length < 3 ? [
+  type SkillType = { label: string, value: number };
+  const skills: SkillType[] = displaySkills.length < 3 ? [
     ...displaySkills, 
     ...Array(3 - displaySkills.length).fill({ label: "TBD", value: 30 })
   ] : displaySkills;
@@ -51,8 +52,8 @@ export default function SkillRadarCard() {
     }).join(" ") + " Z";
   };
 
-  const currentPath = generateRadarPath(skills.map((s: { label: string, value: number }) => s.value));
-  const breathingPath = generateRadarPath(skills.map((s: { label: string, value: number }) => s.value), 1.03);
+  const currentPath = generateRadarPath(skills.map(s => s.value));
+  const breathingPath = generateRadarPath(skills.map(s => s.value), 1.03);
 
   if (!mounted) return null;
 

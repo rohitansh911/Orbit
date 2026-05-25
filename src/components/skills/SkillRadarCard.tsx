@@ -4,6 +4,11 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
 
+interface SkillEntry {
+  label: string;
+  value: number;
+}
+
 function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
   const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
   return {
@@ -21,9 +26,9 @@ export default function SkillRadarCard() {
 
   // If user has skills in onboarding, use them, otherwise fallback to defaults
   const userSkills = profile?.onboardingData?.skills || [];
-  const displaySkills = userSkills.length >= 3 ? userSkills.slice(0, 6).map((s: string) => ({
+  const displaySkills: SkillEntry[] = userSkills.length >= 3 ? userSkills.slice(0, 6).map((s: string): SkillEntry => ({
     label: s,
-    value: 70 + Math.floor(Math.random() * 20), // Placeholder dynamic score
+    value: 70 + Math.floor(Math.random() * 20),
   })) : [
     { label: "Frontend", value: 85 },
     { label: "Backend", value: 65 },
@@ -33,10 +38,9 @@ export default function SkillRadarCard() {
     { label: "Product", value: 75 },
   ];
 
-  type SkillType = { label: string, value: number };
-  const skills: SkillType[] = displaySkills.length < 3 ? [
-    ...displaySkills, 
-    ...Array(3 - displaySkills.length).fill({ label: "TBD", value: 30 })
+  const skills: SkillEntry[] = displaySkills.length < 3 ? [
+    ...displaySkills,
+    ...(Array(3 - displaySkills.length).fill({ label: "TBD", value: 30 }) as SkillEntry[])
   ] : displaySkills;
 
   const size = 320;
@@ -52,8 +56,8 @@ export default function SkillRadarCard() {
     }).join(" ") + " Z";
   };
 
-  const currentPath = generateRadarPath(skills.map(s => s.value));
-  const breathingPath = generateRadarPath(skills.map(s => s.value), 1.03);
+  const currentPath = generateRadarPath(skills.map((s: SkillEntry) => s.value));
+  const breathingPath = generateRadarPath(skills.map((s: SkillEntry) => s.value), 1.03);
 
   if (!mounted) return null;
 
@@ -83,7 +87,7 @@ export default function SkillRadarCard() {
           ))}
 
           {/* Radiating lines */}
-          {skills.map((_, i) => {
+          {skills.map((_: SkillEntry, i: number) => {
             const angle = (i * 360) / skills.length;
             const pt = polarToCartesian(center, center, maxRadius, angle);
             return (

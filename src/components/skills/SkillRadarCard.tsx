@@ -51,8 +51,8 @@ export default function SkillRadarCard() {
     }).join(" ") + " Z";
   };
 
-  const currentPath = generateRadarPath(skills.map(s => s.value));
-  const breathingPath = generateRadarPath(skills.map(s => s.value), 1.03);
+  const currentPath = generateRadarPath(skills.map((s: { label: string, value: number }) => s.value));
+  const breathingPath = generateRadarPath(skills.map((s: { label: string, value: number }) => s.value), 1.03);
 
   if (!mounted) return null;
 

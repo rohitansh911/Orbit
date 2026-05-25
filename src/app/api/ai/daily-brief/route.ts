@@ -19,9 +19,23 @@ Output strictly in this JSON format:
 }
 `;
 
+const FALLBACK = {
+  focus: "Continue building momentum",
+  momentumAnalysis: "Briefing data unavailable — maintain your current trajectory.",
+  warning: null,
+  recommendation: "Complete at least one mission today to keep your streak alive.",
+};
+
 export async function POST(req: Request) {
+  let body: any;
   try {
-    const { role, level, streak, momentum, recentEvents } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  try {
+    const { role, level, streak, momentum, recentEvents } = body;
 
     const promptContext = `
       Target Role: ${role || "Engineer"}
@@ -36,9 +50,8 @@ export async function POST(req: Request) {
     `;
 
     const result = await generateOrbitResponse(promptContext, true);
-    return NextResponse.json({ briefing: result });
+    return NextResponse.json({ briefing: result && Object.keys(result).length > 0 ? result : FALLBACK });
   } catch (error) {
-    console.error("Daily Brief API Error:", error);
-    return NextResponse.json({ error: "Failed to generate daily briefing" }, { status: 500 });
+    return NextResponse.json({ briefing: FALLBACK });
   }
 }

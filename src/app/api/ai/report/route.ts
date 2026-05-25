@@ -24,32 +24,42 @@ Output format MUST be valid JSON:
   "insight": "Short punchy summary sentence.",
   "analysis": "The deeper 3-4 sentence paragraph.",
   "tacticalAdvice": "One actionable next step.",
-  "tone": "positive" | "neutral" | "negative" // determines UI color
+  "tone": "positive" | "neutral" | "negative"
 }
 `;
 
+const FALLBACK = {
+  insight: "Trajectory data processing.",
+  analysis: "Insufficient data to generate a full analysis. Continue completing missions to build your behavioral profile.",
+  tacticalAdvice: "Complete at least 3 missions this week to unlock a detailed intelligence report.",
+  tone: "neutral" as const,
+};
+
 export async function POST(req: Request) {
+  let body: any;
   try {
-    const { level, momentum, streak, completed, skipped } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json(FALLBACK);
+  }
+
+  try {
+    const { level, momentum, streak, completed, skipped } = body;
 
     const statsContext = `
       User Stats this week:
-      - Level: ${level}
-      - Momentum: ${momentum}/100
-      - Streak: ${streak} days
-      - Completed Missions: ${completed}
-      - Skipped Missions: ${skipped}
+      - Level: ${level || 1}
+      - Momentum: ${momentum || 0}/100
+      - Streak: ${streak || 0} days
+      - Completed Missions: ${completed || 0}
+      - Skipped Missions: ${skipped || 0}
     `;
 
     const prompt = REPORT_PROMPT + "\n" + statsContext;
     const result = await generateOrbitResponse(prompt, true);
-    // result is now guaranteed to be an Object, not a string
-    return NextResponse.json(result);
+    
+    return NextResponse.json(result && result.insight ? result : FALLBACK);
   } catch (error) {
-    console.error("AI Report Generation Error:", error);
-    return NextResponse.json(
-      { error: "Failed to generate report" },
-      { status: 500 }
-    );
+    return NextResponse.json(FALLBACK);
   }
 }

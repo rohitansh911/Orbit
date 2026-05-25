@@ -181,8 +181,7 @@ export const useOrbitStore = create<OrbitState>()(
       name: 'orbit-global-state',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // We persist profile, missions, and copilot history.
-        // We do NOT persist `isCopilotOpen` so it doesn't open unexpectedly on refresh.
+        // Persist all user data. We do NOT persist `isCopilotOpen` so it doesn't open unexpectedly on refresh.
         profile: state.profile,
         missions: state.missions,
         copilotHistory: state.copilotHistory,
@@ -190,6 +189,9 @@ export const useOrbitStore = create<OrbitState>()(
         milestones: state.milestones,
         resumeAudit: state.resumeAudit,
         careerRoadmap: state.careerRoadmap,
+        dailyBriefing: state.dailyBriefing,
+        weeklyReports: state.weeklyReports,
+        supportTickets: state.supportTickets,
       })
     }
   )

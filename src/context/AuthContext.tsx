@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
 import { useOrbitStore } from "@/lib/store";
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { clearState } = useOrbitStore();
+  const signingIn = useRef(false);
 
   useEffect(() => {
     // Check active session on mount
@@ -50,17 +51,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearState]);
 
   const signInWithGoogle = async () => {
+    if (signingIn.current) return; // Prevent double-click
+    signingIn.current = true;
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/onboarding` : undefined
+          // Always redirect to root — ProtectedRoute handles onboarding vs dashboard routing
+          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
         }
       });
       if (error) throw error;
     } catch (error) {
       console.error("Error signing in with Google:", error);
       toast.error("Failed to sign in. Please try again.");
+    } finally {
+      signingIn.current = false;
     }
   };
 

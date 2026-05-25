@@ -23,9 +23,24 @@ Output strictly in this JSON format:
 }
 `;
 
+const FALLBACK = {
+  executiveSummary: "Insufficient activity data for a full weekly report. Continue building your trajectory.",
+  strongestGrowth: "Pending",
+  weakestDecay: "Pending",
+  readinessDelta: "Calibrating...",
+  observations: ["Complete more missions this week to unlock detailed weekly evolution analysis."],
+};
+
 export async function POST(req: Request) {
+  let body: any;
   try {
-    const { role, level, xpGained, missionsCompleted, memoryEvents } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ report: FALLBACK });
+  }
+
+  try {
+    const { role, level, xpGained, missionsCompleted, memoryEvents } = body;
 
     const promptContext = `
       Target Role: ${role || "Engineer"}
@@ -40,9 +55,8 @@ export async function POST(req: Request) {
     `;
 
     const result = await generateOrbitResponse(promptContext, true);
-    return NextResponse.json({ report: result });
+    return NextResponse.json({ report: result && result.executiveSummary ? result : FALLBACK });
   } catch (error) {
-    console.error("Weekly Report API Error:", error);
-    return NextResponse.json({ error: "Failed to generate weekly report" }, { status: 500 });
+    return NextResponse.json({ report: FALLBACK });
   }
 }

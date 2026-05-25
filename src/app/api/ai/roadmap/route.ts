@@ -30,9 +30,25 @@ Output strictly in this JSON format:
 }
 `;
 
+const FALLBACK = {
+  summary: "Your roadmap is being calibrated. Complete more missions to refine your trajectory.",
+  phases: [
+    { id: "phase_1", title: "Foundation", duration: "1-2 Weeks", focus: "Build core fundamentals", milestones: ["Complete 5 learning missions", "Review one key concept daily"] },
+    { id: "phase_2", title: "Execution", duration: "2-3 Weeks", focus: "Build projects", milestones: ["Start a portfolio project", "Commit code daily"] },
+    { id: "phase_3", title: "Market Readiness", duration: "2-3 Weeks", focus: "Prepare for interviews", milestones: ["Audit your resume", "Practice behavioral questions"] },
+  ]
+};
+
 export async function POST(req: Request) {
+  let body: any;
   try {
-    const { role, level, skills, momentum, memoryEvents } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ roadmap: FALLBACK });
+  }
+
+  try {
+    const { role, level, skills, momentum, memoryEvents } = body;
 
     const promptContext = `
       User Target Role: ${role || "Engineer"}
@@ -47,9 +63,8 @@ export async function POST(req: Request) {
     `;
 
     const result = await generateOrbitResponse(promptContext, true);
-    return NextResponse.json({ roadmap: result });
+    return NextResponse.json({ roadmap: result && result.summary ? result : FALLBACK });
   } catch (error) {
-    console.error("Roadmap API Error:", error);
-    return NextResponse.json({ error: "Failed to generate roadmap" }, { status: 500 });
+    return NextResponse.json({ roadmap: FALLBACK });
   }
 }

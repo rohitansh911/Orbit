@@ -149,14 +149,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Optimistic UI update
     setProfile(newProfile);
 
-    // Persist to Supabase using UPSERT (handles both new and existing rows)
+    // Persist to Supabase — try upsert first, fallback to insert
     try {
+      const dbProfile = toDbProfile(newProfile);
       const { error } = await supabase
         .from('users')
-        .upsert(toDbProfile(newProfile), { onConflict: 'uid' });
-      if (error) throw error;
-    } catch (e) {
-      console.error("Failed to save onboarding to Supabase", e);
+        .upsert(dbProfile, { onConflict: 'uid' });
+      
+      if (error) {
+        console.error("Upsert failed, trying insert:", JSON.stringify(error));
+        // Fallback: try a plain insert (row might not exist yet)
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert(dbProfile);
+        
+        if (insertError) {
+          console.error("Insert also failed:", JSON.stringify(insertError));
+          // Last resort: try update
+          const { error: updateError } = await supabase
+            .from('users')
+            .update(dbProfile)
+            .eq('uid', newProfile.uid);
+          
+          if (updateError) {
+            console.error("All save methods failed:", JSON.stringify(updateError));
+            toast.error("Failed to sync profile. Your data is saved locally.");
+          }
+        }
+      }
+    } catch (e: any) {
+      console.error("Failed to save onboarding to Supabase:", e?.message || JSON.stringify(e));
       toast.error("Failed to sync profile. Your data is saved locally.");
     }
   };

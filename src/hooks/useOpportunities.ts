@@ -23,7 +23,6 @@ export interface Opportunity {
   internFriendly?: boolean;
   interviewDifficulty?: string;
   growthVelocity?: string;
-  // AI-enriched fields
   match_score?: number;
   skill_gap?: string;
   why_match?: string;
@@ -62,7 +61,7 @@ export interface AIData {
   marketSignals: any[];
 }
 
-const CACHE_TTL_MS = 8 * 60 * 1000; // 8 minutes
+const CACHE_TTL_MS = 8 * 60 * 1000;
 
 export function useOpportunities() {
   const { user } = useAuth();
@@ -78,7 +77,7 @@ export function useOpportunities() {
 
   const cacheRef = useRef<{ data: any; ts: number } | null>(null);
 
-  // ─── Fetch user's application pipeline from Supabase ───
+  // ─── Fetch applications ───────────────────────────────────────────────────
   const fetchApplications = useCallback(async () => {
     if (!user) return [] as Application[];
     try {
@@ -95,12 +94,11 @@ export function useOpportunities() {
     }
   }, [user]);
 
-  // ─── Fetch personalized opportunities + AI scoring from API ───
+  // ─── Fetch AI opportunities ───────────────────────────────────────────────
   const fetchAIIntelligence = useCallback(async (apps: Application[]) => {
     if (cacheRef.current && Date.now() - cacheRef.current.ts < CACHE_TTL_MS) {
       return cacheRef.current.data;
     }
-
     setAiLoading(true);
     try {
       const pipelineCounts = {
@@ -109,17 +107,11 @@ export function useOpportunities() {
         interview: apps.filter(a => a.status === "interviewing").length,
         offer: apps.filter(a => a.status === "offer").length,
       };
-
       const res = await fetch("/api/ai/opportunities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile,
-          pipeline: pipelineCounts,
-          memoryEvents: memoryEvents.slice(0, 10),
-        }),
+        body: JSON.stringify({ profile, pipeline: pipelineCounts, memoryEvents: memoryEvents.slice(0, 10) }),
       });
-
       if (!res.ok) throw new Error("AI fetch failed");
       const result = await res.json();
       cacheRef.current = { data: result, ts: Date.now() };
@@ -132,15 +124,13 @@ export function useOpportunities() {
     }
   }, [profile, memoryEvents]);
 
-  // ─── Compute momentum analytics ───
+  // ─── Momentum ─────────────────────────────────────────────────────────────
   const computeMomentum = useCallback((apps: Application[]): MomentumData => {
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
 
-    const appsThisWeek = apps.filter(a =>
-      new Date(a.created_at).getTime() > oneWeekAgo && a.status === "applied"
-    ).length;
+    const appsThisWeek = apps.filter(a => new Date(a.created_at).getTime() > oneWeekAgo && a.status === "applied").length;
     const appsLastWeek = apps.filter(a => {
       const t = new Date(a.created_at).getTime();
       return t > twoWeeksAgo && t <= oneWeekAgo && a.status === "applied";
@@ -156,8 +146,7 @@ export function useOpportunities() {
     const momentum = profile?.stats?.momentumScore || 0;
     const completedMissions = missions.filter((m: any) => m.status === "completed").length;
     const visibilityScore = Math.min(
-      Math.round((streak * 12) + (momentum * 5) + (completedMissions * 8) + (appliedCount * 15)),
-      999
+      Math.round((streak * 12) + (momentum * 5) + (completedMissions * 8) + (appliedCount * 15)), 999
     );
 
     let velocityLabel = "Building momentum";
@@ -169,71 +158,93 @@ export function useOpportunities() {
     return { appsThisWeek, appsLastWeek, responseRate, visibilityScore, velocityLabel, savedCount, appliedCount, interviewCount, offerCount };
   }, [profile, missions]);
 
-  // ─── ACTIONS ───
+  // ─── ACTIONS ──────────────────────────────────────────────────────────────
 
   const saveJob = useCallback(async (opp: Opportunity) => {
     if (!user) { toast.error("Sign in to save opportunities"); return; }
     try {
       const { error } = await supabase.from("job_applications").upsert({
-        uid: user.id,
-        opportunity_id: opp.id,
-        status: "saved",
-        ai_match_score: opp.match_score || null,
-        company: opp.company,
-        role: opp.role,
-        source: "orbit_feed",
-        updated_at: new Date().toISOString(),
+        uid: user.id, opportunity_id: opp.id, status: "saved",
+        ai_match_score: opp.match_score || null, company: opp.company, role: opp.role,
+        source: "orbit_feed", updated_at: new Date().toISOString(),
       }, { onConflict: "uid,opportunity_id" });
       if (error) throw error;
       toast.success(`${opp.company} saved to pipeline`);
-      const updated = await fetchApplications();
-      setApplications(updated);
-    } catch {
-      toast.error("Failed to save opportunity");
-    }
+      setApplications(await fetchApplications());
+    } catch { toast.error("Failed to save"); }
   }, [user, fetchApplications]);
 
   const applyJob = useCallback(async (opp: Opportunity) => {
     if (!user) { toast.error("Sign in to track applications"); return; }
     try {
+      // Open the real job URL in new tab
+      if (opp.url) window.open(opp.url, "_blank", "noopener,noreferrer");
+
       const { error } = await supabase.from("job_applications").upsert({
-        uid: user.id,
-        opportunity_id: opp.id,
-        status: "applied",
-        ai_match_score: opp.match_score || null,
-        company: opp.company,
-        role: opp.role,
-        source: "orbit_feed",
-        updated_at: new Date().toISOString(),
+        uid: user.id, opportunity_id: opp.id, status: "applied",
+        ai_match_score: opp.match_score || null, company: opp.company, role: opp.role,
+        source: "orbit_feed", updated_at: new Date().toISOString(),
       }, { onConflict: "uid,opportunity_id" });
       if (error) throw error;
       useOrbitStore.getState().addMemoryEvent({
-        id: Date.now().toString(),
-        type: "application_submitted",
-        context: `Applied to ${opp.role} at ${opp.company}`,
-        timestamp: new Date().toISOString(),
+        id: Date.now().toString(), type: "application_submitted",
+        context: `Applied to ${opp.role} at ${opp.company}`, timestamp: new Date().toISOString(),
       });
-      toast.success(`Applied to ${opp.company}!`);
-      const updated = await fetchApplications();
-      setApplications(updated);
-    } catch {
-      toast.error("Failed to track application");
-    }
+      toast.success(`Opened ${opp.company} careers page + marked as Applied!`);
+      setApplications(await fetchApplications());
+    } catch { toast.error("Failed to track application"); }
   }, [user, fetchApplications]);
 
   const moveStage = useCallback(async (appId: string, newStatus: Application["status"]) => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from("job_applications")
+      const { error } = await supabase.from("job_applications")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", appId)
-        .eq("uid", user.id);
+        .eq("id", appId).eq("uid", user.id);
       if (error) throw error;
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
-    } catch {
-      toast.error("Failed to update stage");
-    }
+      const labels: Record<string, string> = { applied: "Applied", interviewing: "Interview", offer: "Offer 🎉" };
+      toast.success(`Moved to ${labels[newStatus] || newStatus}`);
+    } catch { toast.error("Failed to update stage"); }
+  }, [user]);
+
+  const deleteApplication = useCallback(async (appId: string) => {
+    if (!user) return;
+    // Optimistic removal
+    const previous = applications;
+    setApplications(prev => prev.filter(a => a.id !== appId));
+
+    const toastId = toast.success("Removed from pipeline", {
+      duration: 5000,
+    });
+
+    // Give 5s to undo
+    let undone = false;
+    const undoTimeout = setTimeout(async () => {
+      if (undone) return;
+      try {
+        const { error } = await supabase.from("job_applications")
+          .delete().eq("id", appId).eq("uid", user.id);
+        if (error) throw error;
+      } catch {
+        setApplications(previous);
+        toast.error("Failed to delete — restored");
+      }
+    }, 5000);
+
+    // Expose undo on toast (manual undo via re-add)
+    return () => { undone = true; clearTimeout(undoTimeout); setApplications(previous); };
+  }, [user, applications]);
+
+  const updateNotes = useCallback(async (appId: string, notes: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("job_applications")
+        .update({ notes, updated_at: new Date().toISOString() })
+        .eq("id", appId).eq("uid", user.id);
+      if (error) throw error;
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, notes } : a));
+    } catch { toast.error("Failed to save notes"); }
   }, [user]);
 
   const refetchAI = useCallback(async () => {
@@ -245,36 +256,25 @@ export function useOpportunities() {
     setAiData({ recommendations: result.recommendations || [], marketSignals: result.marketSignals || [] });
   }, [fetchApplications, fetchAIIntelligence]);
 
-  // ─── Initial load ───
+  // ─── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!profile) return;
     let cancelled = false;
-
     async function init() {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       try {
         const apps = await fetchApplications();
         if (cancelled) return;
         setApplications(apps);
         setLoading(false);
-
-        // Fetch AI-personalized opportunities
         const result = await fetchAIIntelligence(apps);
         if (cancelled) return;
         if (result.opportunities?.length) setOpportunities(result.opportunities);
-        setAiData({
-          recommendations: result.recommendations || [],
-          marketSignals: result.marketSignals || [],
-        });
+        setAiData({ recommendations: result.recommendations || [], marketSignals: result.marketSignals || [] });
       } catch {
-        if (!cancelled) {
-          setError("Failed to load opportunities");
-          setLoading(false);
-        }
+        if (!cancelled) { setError("Failed to load opportunities"); setLoading(false); }
       }
     }
-
     init();
     return () => { cancelled = true; };
   }, [profile?.uid, fetchApplications, fetchAIIntelligence]);
@@ -282,16 +282,7 @@ export function useOpportunities() {
   const momentum = computeMomentum(applications);
 
   return {
-    opportunities,
-    applications,
-    momentum,
-    aiData,
-    loading,
-    aiLoading,
-    error,
-    saveJob,
-    applyJob,
-    moveStage,
-    refetchAI,
+    opportunities, applications, momentum, aiData, loading, aiLoading, error,
+    saveJob, applyJob, moveStage, deleteApplication, updateNotes, refetchAI,
   };
 }

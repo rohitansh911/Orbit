@@ -21,6 +21,8 @@ export default function OpportunitiesPage() {
     saveJob,
     applyJob,
     moveStage,
+    deleteApplication,
+    updateNotes,
     refetchAI,
   } = useOpportunities();
 
@@ -103,6 +105,8 @@ export default function OpportunitiesPage() {
               applications={applications}
               loading={loading}
               onMoveStage={moveStage}
+              onDelete={deleteApplication}
+              onUpdateNotes={updateNotes}
             />
           </motion.div>
           <motion.div

@@ -202,9 +202,10 @@ export default function RecommendedGrid({ opportunities, applications, loading, 
                     ) : (
                       <button
                         onClick={() => handleApply(job)}
-                        className="flex-1 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all shadow-sm"
+                        className="flex-1 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
                       >
-                        Quick Apply
+                        <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>open_in_new</span>
+                        Apply & Track
                       </button>
                     )}
                     <button

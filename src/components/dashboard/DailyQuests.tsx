@@ -35,7 +35,7 @@ function ActiveQuestItem({ label, xp, onComplete, onSkip }: { label: string; xp:
       <div className="flex items-center gap-3 shrink-0">
         <button 
           onClick={(e) => { e.stopPropagation(); onSkip(); }}
-          className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/40 hover:text-error transition-colors px-3 py-1.5 rounded-lg hover:bg-error/5"
+          className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 hover:text-error hover:bg-error/8 transition-all px-3 py-1.5 rounded-lg border border-black/8 hover:border-error/20"
         >
           Skip
         </button>
@@ -172,7 +172,7 @@ export default function DailyQuests() {
       {/* Add custom mission */}
       <button
         id="add-mission-btn"
-        className="w-full py-4 border border-dashed border-black/10 rounded-2xl text-on-surface-variant/50 text-[11px] font-black hover:bg-white/50 hover:text-muted-indigo hover:border-muted-indigo/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-300 tracking-[0.25em] uppercase active:scale-[0.99]"
+        className="w-full py-4 bg-[#1a1a1a] text-[#f5f5e8] rounded-2xl text-[11px] font-black hover:bg-[#2a2a2a] active:scale-[0.99] transition-all duration-300 tracking-[0.25em] uppercase"
       >
         + Design custom mission
       </button>

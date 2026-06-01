@@ -12,7 +12,7 @@ export default function BadgeXP({
   if (solid) {
     return (
       <span
-        className={`text-[10px] font-black text-white bg-muted-indigo px-4 py-2 rounded-full shadow-lg shadow-muted-indigo/25 tracking-wider ${className}`}
+        className={`text-[10px] font-black text-[#f5f5e8] bg-[#1a1a1a] px-4 py-2 rounded-full shadow-sm tracking-wider ${className}`}
       >
         {children}
       </span>

@@ -236,10 +236,9 @@ body {
 
 /* ─── Badge XP ──────────────────────────────────────────── */
 .badge-xp {
-  background: rgba(99, 102, 241, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  color: #6366f1;
+  background: #1a1a1a;
+  color: #f5f5e8;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 
 /* ─── Interactive Card ──────────────────────────────────── */

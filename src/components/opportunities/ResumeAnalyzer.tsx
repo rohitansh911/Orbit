@@ -105,7 +105,7 @@ export default function ResumeAnalyzer() {
             <button
               onClick={handleAnalyze}
               disabled={!file}
-              className="px-8 py-2.5 rounded-xl bg-primary text-white font-bold text-xs disabled:opacity-50 disabled:pointer-events-none hover:-translate-y-0.5 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 flex items-center gap-2"
+              className="px-8 py-2.5 rounded-xl bg-[#1a1a1a] text-[#f5f5e8] font-bold text-xs disabled:opacity-50 disabled:pointer-events-none hover:bg-[#2a2a2a] active:scale-95 transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
               Analyze Orbit

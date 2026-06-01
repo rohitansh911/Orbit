@@ -57,7 +57,7 @@ export default function RoadmapPage() {
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+          className="px-6 py-3 bg-[#1a1a1a] text-[#f5f5e8] font-bold rounded-xl shadow-sm hover:bg-[#2a2a2a] active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
         >
           {loading ? (
             <span className="material-symbols-outlined animate-spin text-sm">sync</span>

@@ -262,7 +262,7 @@ export function generateOpportunityFromCompany(company: Company, targetRole: str
   }
 
   return {
-    id: `${company.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    id: `${company.id}_${bestRole.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20)}`,
     company: company.name,
     role: bestRole,
     location: company.location,

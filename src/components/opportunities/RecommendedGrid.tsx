@@ -136,8 +136,10 @@ export default function RecommendedGrid({ opportunities, applications, loading, 
                       <div className="w-10 h-10 rounded-xl bg-muted-indigo/5 border border-muted-indigo/10 flex items-center justify-center shrink-0">
                         {job.match_score ? (
                           <span className="text-sm font-black text-muted-indigo">{job.match_score}%</span>
-                        ) : (
+                        ) : aiLoading ? (
                           <span className="w-4 h-4 rounded-full border-2 border-muted-indigo/30 border-t-muted-indigo animate-spin" />
+                        ) : (
+                          <span className="text-sm font-black text-on-surface-variant/30">—</span>
                         )}
                       </div>
                     </div>

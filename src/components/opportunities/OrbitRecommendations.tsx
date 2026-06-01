@@ -80,7 +80,7 @@ export default function OrbitRecommendations({ recommendations, loading, aiLoadi
       <button
         onClick={onRefresh}
         disabled={aiLoading}
-        className="w-full mt-6 py-3 border border-dashed border-black/10 rounded-xl text-on-surface-variant/50 text-[10px] font-black uppercase tracking-[0.2em] hover:text-muted-indigo hover:border-muted-indigo/30 transition-all hover:bg-muted-indigo/5 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full mt-6 py-3 bg-[#1a1a1a] text-[#f5f5e8] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#2a2a2a] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {aiLoading ? "Generating..." : "Generate More Insights"}
       </button>

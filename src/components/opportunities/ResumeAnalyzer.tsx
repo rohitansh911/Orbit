@@ -98,7 +98,7 @@ export default function ResumeAnalyzer() {
             />
             <button
               onClick={() => document.getElementById("resume-upload")?.click()}
-              className="px-6 py-2.5 rounded-xl bg-surface-container-low text-on-surface-variant font-bold text-xs border border-black/5 hover:bg-white transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-[#1a1a1a] text-[#f5f5e8] font-bold text-xs hover:bg-[#2a2a2a] active:scale-95 transition-all"
             >
               Browse Files
             </button>
@@ -221,7 +221,7 @@ export default function ResumeAnalyzer() {
           <div className="flex justify-center pt-4">
             <button
               onClick={() => setResult(null)}
-              className="px-6 py-2 rounded-xl text-[11px] font-bold text-on-surface-variant border border-black/10 hover:bg-black/5 transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold hover:bg-[#2a2a2a] active:scale-95 transition-all"
             >
               Analyze Another Resume
             </button>

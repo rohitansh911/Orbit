@@ -75,7 +75,7 @@ function PipelineCard({
           {/* Expand / collapse */}
           <button
             onClick={() => setExpanded(e => !e)}
-            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-on-surface/5 text-on-surface-variant/30 hover:text-on-surface-variant/60 transition-all shrink-0"
+            className="w-6 h-6 flex items-center justify-center rounded-md bg-[#1a1a1a]/8 hover:bg-[#1a1a1a] hover:text-[#f5f5e8] text-on-surface-variant/50 transition-all shrink-0"
           >
             <span className="material-symbols-outlined text-[14px]">
               {expanded ? "expand_less" : "expand_more"}
@@ -95,17 +95,17 @@ function PipelineCard({
           )}
           <button
             onClick={() => { setExpanded(true); setTimeout(() => notesRef.current?.focus(), 100); }}
-            className="w-6 h-6 flex items-center justify-center rounded-lg bg-on-surface/5 hover:bg-muted-indigo/10 text-on-surface-variant/40 hover:text-muted-indigo transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#1a1a1a]/8 hover:bg-[#1a1a1a] hover:text-[#f5f5e8] text-on-surface-variant/50 transition-all"
             title="Add note"
           >
-            <span className="material-symbols-outlined text-[13px]">edit_note</span>
+            <span className="material-symbols-outlined text-[14px]">edit_note</span>
           </button>
           <button
             onClick={onDelete}
-            className="w-6 h-6 flex items-center justify-center rounded-lg bg-on-surface/5 hover:bg-error/10 text-on-surface-variant/30 hover:text-error transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#1a1a1a]/8 hover:bg-error text-on-surface-variant/50 hover:text-white transition-all"
             title="Remove"
           >
-            <span className="material-symbols-outlined text-[13px]">delete</span>
+            <span className="material-symbols-outlined text-[14px]">delete</span>
           </button>
         </div>
       </div>
@@ -133,7 +133,7 @@ function PipelineCard({
               {notesChanged && (
                 <button
                   onClick={handleSaveNotes}
-                  className="w-full py-1.5 bg-muted-indigo/10 text-muted-indigo text-[9px] font-bold rounded-lg hover:bg-muted-indigo/20 transition-all"
+                  className="w-full py-1.5 bg-[#1a1a1a] text-[#f5f5e8] text-[9px] font-bold rounded-lg hover:bg-[#2a2a2a] active:scale-95 transition-all"
                 >
                   Save Notes
                 </button>

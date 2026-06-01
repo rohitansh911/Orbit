@@ -18,11 +18,17 @@ export interface Opportunity {
   experience_level: string;
   url: string;
   tags: string[];
-  // AI-enriched fields (filled after scoring)
+  hiringIntensity?: string;
+  remoteFriendly?: boolean;
+  internFriendly?: boolean;
+  interviewDifficulty?: string;
+  growthVelocity?: string;
+  // AI-enriched fields
   match_score?: number;
   skill_gap?: string;
   why_match?: string;
   urgency?: string;
+  recruiter_alignment?: string;
 }
 
 export interface Application {
@@ -56,7 +62,7 @@ export interface AIData {
   marketSignals: any[];
 }
 
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 8 * 60 * 1000; // 8 minutes
 
 export function useOpportunities() {
   const { user } = useAuth();
@@ -72,24 +78,7 @@ export function useOpportunities() {
 
   const cacheRef = useRef<{ data: any; ts: number } | null>(null);
 
-  // ─── Fetch base opportunities from Supabase ───
-  const fetchOpportunities = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("opportunities")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return (data || []) as Opportunity[];
-    } catch (e) {
-      console.error("Failed to fetch opportunities:", e);
-      return [] as Opportunity[];
-    }
-  }, []);
-
-  // ─── Fetch user's application pipeline ───
+  // ─── Fetch user's application pipeline from Supabase ───
   const fetchApplications = useCallback(async () => {
     if (!user) return [] as Application[];
     try {
@@ -98,7 +87,6 @@ export function useOpportunities() {
         .select("*")
         .eq("uid", user.id)
         .order("updated_at", { ascending: false });
-
       if (error) throw error;
       return (data || []) as Application[];
     } catch (e) {
@@ -107,9 +95,8 @@ export function useOpportunities() {
     }
   }, [user]);
 
-  // ─── Fetch AI scores + recommendations ───
-  const fetchAIIntelligence = useCallback(async (opps: Opportunity[], apps: Application[]) => {
-    // Use cache if still fresh
+  // ─── Fetch personalized opportunities + AI scoring from API ───
+  const fetchAIIntelligence = useCallback(async (apps: Application[]) => {
     if (cacheRef.current && Date.now() - cacheRef.current.ts < CACHE_TTL_MS) {
       return cacheRef.current.data;
     }
@@ -127,42 +114,25 @@ export function useOpportunities() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          opportunities: opps.slice(0, 8), // limit to 8 for speed
           profile,
           pipeline: pipelineCounts,
           memoryEvents: memoryEvents.slice(0, 10),
         }),
       });
 
-      if (!res.ok) throw new Error("AI scoring failed");
+      if (!res.ok) throw new Error("AI fetch failed");
       const result = await res.json();
-
       cacheRef.current = { data: result, ts: Date.now() };
       return result;
     } catch (e) {
       console.error("AI intelligence fetch failed:", e);
-      return { scores: [], recommendations: [], marketSignals: [] };
+      return { opportunities: [], recommendations: [], marketSignals: [] };
     } finally {
       setAiLoading(false);
     }
   }, [profile, memoryEvents]);
 
-  // ─── Merge AI scores into opportunities ───
-  const mergeScores = (opps: Opportunity[], scores: any[]): Opportunity[] => {
-    if (!scores?.length) return opps;
-    const scoreMap = new Map(scores.map((s: any) => [s.id, s]));
-    return opps
-      .map(opp => {
-        const score = scoreMap.get(opp.id);
-        return score
-          ? { ...opp, match_score: score.match_score, skill_gap: score.skill_gap, why_match: score.why_match, urgency: score.urgency }
-          : { ...opp, match_score: 0 };
-      })
-      .filter(opp => opp.match_score !== undefined && opp.match_score > 0)
-      .sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
-  };
-
-  // ─── Compute momentum analytics from real data ───
+  // ─── Compute momentum analytics ───
   const computeMomentum = useCallback((apps: Application[]): MomentumData => {
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -171,7 +141,6 @@ export function useOpportunities() {
     const appsThisWeek = apps.filter(a =>
       new Date(a.created_at).getTime() > oneWeekAgo && a.status === "applied"
     ).length;
-
     const appsLastWeek = apps.filter(a => {
       const t = new Date(a.created_at).getTime();
       return t > twoWeeksAgo && t <= oneWeekAgo && a.status === "applied";
@@ -181,21 +150,16 @@ export function useOpportunities() {
     const interviewCount = apps.filter(a => a.status === "interviewing").length;
     const offerCount = apps.filter(a => a.status === "offer").length;
     const savedCount = apps.filter(a => a.status === "saved").length;
+    const responseRate = appliedCount > 0 ? Math.round((interviewCount / appliedCount) * 100) : 0;
 
-    const responseRate = appliedCount > 0
-      ? Math.round((interviewCount / appliedCount) * 100)
-      : 0;
-
-    // Visibility score: driven by streak × momentum × applications
     const streak = profile?.stats?.streak || 0;
     const momentum = profile?.stats?.momentumScore || 0;
-    const completedMissions = missions.filter(m => m.status === "completed").length;
+    const completedMissions = missions.filter((m: any) => m.status === "completed").length;
     const visibilityScore = Math.min(
       Math.round((streak * 12) + (momentum * 5) + (completedMissions * 8) + (appliedCount * 15)),
       999
     );
 
-    // Velocity label
     let velocityLabel = "Building momentum";
     if (interviewCount >= 2) velocityLabel = "Moving rapidly through screening";
     else if (appsThisWeek >= 5) velocityLabel = "High application velocity";
@@ -220,12 +184,11 @@ export function useOpportunities() {
         source: "orbit_feed",
         updated_at: new Date().toISOString(),
       }, { onConflict: "uid,opportunity_id" });
-
       if (error) throw error;
       toast.success(`${opp.company} saved to pipeline`);
       const updated = await fetchApplications();
       setApplications(updated);
-    } catch (e) {
+    } catch {
       toast.error("Failed to save opportunity");
     }
   }, [user, fetchApplications]);
@@ -243,7 +206,6 @@ export function useOpportunities() {
         source: "orbit_feed",
         updated_at: new Date().toISOString(),
       }, { onConflict: "uid,opportunity_id" });
-
       if (error) throw error;
       useOrbitStore.getState().addMemoryEvent({
         id: Date.now().toString(),
@@ -254,7 +216,7 @@ export function useOpportunities() {
       toast.success(`Applied to ${opp.company}!`);
       const updated = await fetchApplications();
       setApplications(updated);
-    } catch (e) {
+    } catch {
       toast.error("Failed to track application");
     }
   }, [user, fetchApplications]);
@@ -269,44 +231,43 @@ export function useOpportunities() {
         .eq("uid", user.id);
       if (error) throw error;
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
-    } catch (e) {
+    } catch {
       toast.error("Failed to update stage");
     }
   }, [user]);
 
   const refetchAI = useCallback(async () => {
-    cacheRef.current = null; // bust cache
-    const [opps, apps] = await Promise.all([fetchOpportunities(), fetchApplications()]);
-    const aiResult = await fetchAIIntelligence(opps, apps);
-    const scored = mergeScores(opps, aiResult.scores || []);
-    setOpportunities(scored);
-    setAiData({ recommendations: aiResult.recommendations || [], marketSignals: aiResult.marketSignals || [] });
-  }, [fetchOpportunities, fetchApplications, fetchAIIntelligence]);
+    cacheRef.current = null;
+    const apps = await fetchApplications();
+    const result = await fetchAIIntelligence(apps);
+    setApplications(apps);
+    if (result.opportunities?.length) setOpportunities(result.opportunities);
+    setAiData({ recommendations: result.recommendations || [], marketSignals: result.marketSignals || [] });
+  }, [fetchApplications, fetchAIIntelligence]);
 
   // ─── Initial load ───
   useEffect(() => {
     if (!profile) return;
-
     let cancelled = false;
+
     async function init() {
       setLoading(true);
       setError(null);
       try {
-        const [opps, apps] = await Promise.all([fetchOpportunities(), fetchApplications()]);
+        const apps = await fetchApplications();
         if (cancelled) return;
         setApplications(apps);
-
-        // Show base opportunities immediately
-        setOpportunities(opps);
         setLoading(false);
 
-        // Then enrich with AI scores
-        const aiResult = await fetchAIIntelligence(opps, apps);
+        // Fetch AI-personalized opportunities
+        const result = await fetchAIIntelligence(apps);
         if (cancelled) return;
-        const scored = mergeScores(opps, aiResult.scores || []);
-        setOpportunities(scored.length > 0 ? scored : opps);
-        setAiData({ recommendations: aiResult.recommendations || [], marketSignals: aiResult.marketSignals || [] });
-      } catch (e) {
+        if (result.opportunities?.length) setOpportunities(result.opportunities);
+        setAiData({
+          recommendations: result.recommendations || [],
+          marketSignals: result.marketSignals || [],
+        });
+      } catch {
         if (!cancelled) {
           setError("Failed to load opportunities");
           setLoading(false);
@@ -316,7 +277,7 @@ export function useOpportunities() {
 
     init();
     return () => { cancelled = true; };
-  }, [profile?.uid, fetchOpportunities, fetchApplications, fetchAIIntelligence]);
+  }, [profile?.uid, fetchApplications, fetchAIIntelligence]);
 
   const momentum = computeMomentum(applications);
 

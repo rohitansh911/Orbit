@@ -1,8 +1,29 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { Opportunity, Application } from "@/hooks/useOpportunities";
+
+const INTENSITY_STYLES: Record<string, string> = {
+  very_high: "bg-green-500/10 text-green-700 border-green-500/15",
+  high: "bg-amber-500/10 text-amber-700 border-amber-500/15",
+  medium: "bg-blue-500/10 text-blue-700 border-blue-500/15",
+  low: "bg-on-surface/5 text-on-surface-variant border-black/5",
+};
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  elite: "🔥 Elite",
+  hard: "⚡ Hard",
+  medium: "◎ Medium",
+  accessible: "✓ Accessible",
+};
+
+const GROWTH_LABELS: Record<string, string> = {
+  hypergrowth: "Hypergrowth",
+  fast: "Fast Growing",
+  steady: "Established",
+  established: "Established",
+};
 
 interface RecommendedGridProps {
   opportunities: Opportunity[];
@@ -122,21 +143,26 @@ export default function RecommendedGrid({ opportunities, applications, loading, 
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-5">
-                      <span className="px-2.5 py-1 bg-on-surface/5 text-on-surface-variant/70 text-[10px] font-bold rounded-lg border border-black/5">
-                        {job.remote_type}
-                      </span>
-                      {job.salary_range && (
-                        <span className="px-2.5 py-1 bg-green-500/10 text-green-700 text-[10px] font-bold rounded-lg border border-green-500/15">
-                          {job.salary_range}
+                        <span className="px-2.5 py-1 bg-on-surface/5 text-on-surface-variant/70 text-[10px] font-bold rounded-lg border border-black/5 capitalize">
+                          {job.remote_type}
                         </span>
-                      )}
-                      {job.urgency && job.urgency !== "Low" && (
-                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border flex items-center gap-1 ${urgencyClass}`}>
-                          {job.urgency === "Very High" && <span className="w-1 h-1 rounded-full bg-error animate-pulse" />}
-                          {job.urgency}
-                        </span>
-                      )}
-                    </div>
+                        {job.salary_range && (
+                          <span className="px-2.5 py-1 bg-green-500/10 text-green-700 text-[10px] font-bold rounded-lg border border-green-500/15">
+                            {job.salary_range}
+                          </span>
+                        )}
+                        {job.urgency && job.urgency !== "Low" && (
+                          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border flex items-center gap-1 ${urgencyClass}`}>
+                            {job.urgency === "Very High" && <span className="w-1 h-1 rounded-full bg-error animate-pulse" />}
+                            {job.urgency}
+                          </span>
+                        )}
+                        {job.hiringIntensity && job.hiringIntensity !== "low" && (
+                          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${INTENSITY_STYLES[job.hiringIntensity] || INTENSITY_STYLES["medium"]}`}>
+                            {job.hiringIntensity === "very_high" ? "🔥 Hiring Now" : "Actively Hiring"}
+                          </span>
+                        )}
+                      </div>
 
                     <div className="space-y-3 mb-6">
                       {job.skill_gap && (
@@ -174,15 +200,17 @@ export default function RecommendedGrid({ opportunities, applications, loading, 
                     ) : (
                       <button
                         onClick={() => handleApply(job)}
-                        className="flex-1 py-2.5 bg-muted-indigo text-white text-[11px] font-bold rounded-xl shadow-lg shadow-muted-indigo/20 hover:bg-muted-indigo/90 active:scale-95 transition-all"
+                        className="flex-1 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all shadow-sm"
                       >
                         Quick Apply
                       </button>
                     )}
                     <button
                       onClick={() => handleSave(job)}
-                      className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 ${
-                        isSaved ? "bg-muted-indigo/10 text-muted-indigo" : "bg-on-surface/5 text-on-surface-variant/60 hover:text-muted-indigo hover:bg-muted-indigo/10"
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
+                        isSaved
+                          ? "bg-[#1a1a1a] text-[#f5f5e8] border-[#1a1a1a]"
+                          : "bg-transparent text-on-surface-variant/50 border-black/10 hover:border-[#1a1a1a]/30 hover:text-[#1a1a1a]"
                       }`}
                     >
                       <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>

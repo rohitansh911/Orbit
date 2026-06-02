@@ -26,16 +26,23 @@ export function useNetworking() {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<NetworkingContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dbMissing, setDbMissing] = useState(false);
 
   const fetchContacts = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     try {
       const { data, error } = await supabase
         .from("networking_contacts")
         .select("*")
         .eq("uid", user.id)
         .order("updated_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        // FIX #3: Detect missing table (migration not run)
+        if (error.code === "42P01" || error.message?.includes("does not exist")) {
+          setDbMissing(true);
+        }
+        throw error;
+      }
       setContacts((data || []) as NetworkingContact[]);
     } catch (e) {
       console.error("Failed to fetch contacts:", e);
@@ -105,5 +112,5 @@ export function useNetworking() {
     return new Date(c.follow_up_date) < new Date() && c.status !== "referral_given";
   });
 
-  return { contacts, loading, addContact, updateContact, deleteContact, generateOutreach, overdueFollowUps };
+  return { contacts, loading, dbMissing, addContact, updateContact, deleteContact, generateOutreach, overdueFollowUps };
 }

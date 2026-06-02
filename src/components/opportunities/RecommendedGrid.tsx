@@ -195,11 +195,24 @@ export default function RecommendedGrid({ opportunities, applications, loading, 
                   </div>
 
                   <div className="flex items-center gap-3 pt-4 border-t border-outline-variant/10">
-                    {isApplied ? (
-                      <div className="flex-1 py-2.5 bg-green-500/10 border border-green-500/20 text-green-700 text-[11px] font-bold rounded-xl text-center">
-                        ✓ Applied
-                      </div>
-                    ) : (
+                    {/* FIX #10: Apply & Track animation */}
+                  {isApplied ? (
+                    <motion.div
+                      initial={{ scale: 0.85, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                      className="flex-1 py-2.5 bg-green-500/10 border border-green-500/20 text-green-700 text-[11px] font-bold rounded-xl text-center flex items-center justify-center gap-1.5"
+                    >
+                      <motion.span
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 600, damping: 20, delay: 0.1 }}
+                        className="material-symbols-outlined text-[14px]"
+                        style={{ fontVariationSettings: "'FILL' 1" }}
+                      >check_circle</motion.span>
+                      Applied!
+                    </motion.div>
+                  ) : (
                       <button
                         onClick={() => handleApply(job)}
                         className="flex-1 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"

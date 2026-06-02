@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNetworking, NetworkingContact } from "@/hooks/useNetworking";
 import { useUser } from "@/context/UserContext";
@@ -19,15 +19,30 @@ const CONNECTION_TYPES = ["linkedin", "email", "event", "referral", "cold"];
 function AddContactModal({ onAdd, onClose }: { onAdd: (c: any) => void; onClose: () => void }) {
   const [form, setForm] = useState({ name: "", company: "", role: "", linkedin_url: "", email: "", connection_type: "linkedin", follow_up_date: "", notes: "" });
   const valid = form.name && form.company;
+  const isDirty = Object.values(form).some(v => v !== "");
+
+  // FIX #9: Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
+
+  // FIX #7: Warn before discarding a partially-filled form
+  const handleClose = () => {
+    if (isDirty && !window.confirm("Discard this contact? Your changes will be lost.")) return;
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={handleClose}>
       <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center">
           <h3 className="font-extrabold text-base">Add Contact</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 text-on-surface-variant/40">
+          <button onClick={handleClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 text-on-surface-variant/40">
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
@@ -75,7 +90,7 @@ function AddContactModal({ onAdd, onClose }: { onAdd: (c: any) => void; onClose:
           </div>
         </div>
         <div className="px-6 py-4 border-t border-outline-variant/10 flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-black/10 text-[11px] font-bold text-on-surface-variant/60 rounded-xl hover:bg-black/5 transition-all">Cancel</button>
+          <button onClick={handleClose} className="flex-1 py-2.5 border border-black/10 text-[11px] font-bold text-on-surface-variant/60 rounded-xl hover:bg-black/5 transition-all">Cancel</button>
           <button onClick={() => { if (valid) { onAdd({ ...form, status: "connected", last_contacted: new Date().toISOString().split("T")[0] }); onClose(); } }}
             disabled={!valid}
             className="flex-1 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] transition-all disabled:opacity-40">
@@ -180,7 +195,7 @@ function ContactCard({ contact, onUpdate, onDelete, onGenerateOutreach, userGoal
 }
 
 export default function NetworkingTracker() {
-  const { contacts, loading, addContact, updateContact, deleteContact, generateOutreach, overdueFollowUps } = useNetworking();
+  const { contacts, loading, dbMissing, addContact, updateContact, deleteContact, generateOutreach, overdueFollowUps } = useNetworking();
   const { profile } = useUser();
   const [showAdd, setShowAdd] = useState(false);
   const userGoal = profile?.onboardingData?.careerGoal || "Product Manager";
@@ -206,7 +221,18 @@ export default function NetworkingTracker() {
           </button>
         </div>
 
-        {/* Stats row */}
+        {/* FIX #3: DB migration error banner */}
+        {dbMissing && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+            <span className="material-symbols-outlined text-[18px] text-amber-600 shrink-0 mt-0.5">warning</span>
+            <div>
+              <p className="text-[12px] font-bold text-amber-800">Database setup required</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Run the <code className="bg-amber-100 px-1 rounded">networking_contacts</code> SQL migration in Supabase to enable this feature.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-4 gap-3">
           {[
             { label: "Total", value: contacts.length, icon: "group" },

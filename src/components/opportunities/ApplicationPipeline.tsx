@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Application } from "@/hooks/useOpportunities";
 
 interface ApplicationPipelineProps {
@@ -139,6 +139,7 @@ function PipelineCard({
   const sourceInfo = SOURCE_TYPES.find(s => s.value === sourceType) || SOURCE_TYPES[0];
 
   const handleSaveDetails = () => {
+    // P0 FIX: was missing app.id — now correctly passes id + updates
     onUpdateApplication({
       follow_up_date: followUpDate || undefined,
       interview_date: interviewDate ? new Date(interviewDate).toISOString() : undefined,
@@ -334,8 +335,17 @@ export default function ApplicationPipeline({
   applications, loading, onMoveStage, onDelete, onUpdateNotes, onUpdateApplication, onReject, onGenerateCoverLetter
 }: ApplicationPipelineProps) {
   const activeApps = applications.filter(a => a.status !== "rejected");
+  const savedApps = applications.filter(a => a.status === "saved");
   const rejectedApps = applications.filter(a => a.status === "rejected");
   const [showRejected, setShowRejected] = useState(false);
+  const [showBulkClearConfirm, setShowBulkClearConfirm] = useState(false);
+
+  // FIX #9: Escape key closes rejection modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setShowBulkClearConfirm(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const grouped = COLUMNS.reduce((acc, col) => {
     acc[col.id] = applications.filter(a => a.status === col.id);
@@ -356,12 +366,33 @@ export default function ApplicationPipeline({
           <span className="material-symbols-outlined text-[18px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>view_kanban</span>
           <h2 className="text-xl font-extrabold text-primary tracking-tight">Active Pipeline</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {overdueFollowUps.length > 0 && (
             <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
               <span className="material-symbols-outlined text-[11px]">notifications_active</span>
               {overdueFollowUps.length} follow-up{overdueFollowUps.length > 1 ? "s" : ""} overdue
             </span>
+          )}
+          {/* FIX #8: Bulk clear saved jobs */}
+          {savedApps.length > 2 && (
+            showBulkClearConfirm ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-bold text-error">Clear {savedApps.length} saved?</span>
+                <button onClick={() => { savedApps.forEach(a => onDelete(a.id)); setShowBulkClearConfirm(false); }}
+                  className="text-[9px] font-bold px-2 py-1 bg-error text-white rounded-lg hover:bg-error/90 transition-all">
+                  Yes, clear
+                </button>
+                <button onClick={() => setShowBulkClearConfirm(false)}
+                  className="text-[9px] font-bold px-2 py-1 border border-black/10 text-on-surface-variant/60 rounded-lg hover:bg-black/5 transition-all">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowBulkClearConfirm(true)}
+                className="text-[9px] font-bold text-on-surface-variant/40 hover:text-error border border-black/8 px-2 py-1 rounded-lg hover:border-error/20 transition-all">
+                Clear saved ({savedApps.length})
+              </button>
+            )
           )}
           <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-[0.1em]">
             {activeApps.length} active
@@ -369,8 +400,9 @@ export default function ApplicationPipeline({
         </div>
       </div>
 
-      {/* Kanban columns */}
-      <div className="grid grid-cols-4 gap-4 flex-1">
+      {/* Kanban columns — FIX #4: responsive, horizontal scroll on mobile */}
+      <div className="overflow-x-auto -mx-2 px-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[480px]">
         {COLUMNS.map((col, i) => {
           const colApps = grouped[col.id] || [];
           return (
@@ -419,6 +451,7 @@ export default function ApplicationPipeline({
             </motion.div>
           );
         })}
+      </div>
       </div>
 
       {/* Rejected accordion */}

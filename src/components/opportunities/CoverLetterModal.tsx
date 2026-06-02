@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Application } from "@/hooks/useOpportunities";
 import { useUser } from "@/context/UserContext";
@@ -15,10 +15,24 @@ interface CoverLetterModalProps {
 export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterModalProps) {
   const { profile } = useUser();
   const [loading, setLoading] = useState(false);
+
+  // FIX #2: Reset state whenever the app changes (different company)
   const [coverLetter, setCoverLetter] = useState(app?.cover_letter || "");
   const [generated, setGenerated] = useState(false);
 
-  const handleGenerate = async () => {
+  useEffect(() => {
+    setCoverLetter(app?.cover_letter || "");
+    setGenerated(false);
+  }, [app?.id]);
+
+  // FIX #9: Escape key closes modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const handleGenerate = useCallback(async () => {
     if (!app) return;
     setLoading(true);
     try {
@@ -38,7 +52,7 @@ export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterMo
     } finally {
       setLoading(false);
     }
-  };
+  }, [app, profile]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(coverLetter);
@@ -55,12 +69,16 @@ export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterMo
 
   if (!app) return null;
 
+  // FIX #6: Correct word count — trim before split
+  const wordCount = coverLetter.trim() ? coverLetter.trim().split(/\s+/).length : 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <motion.div
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+        transition={{ type: "spring", stiffness: 400, damping: 28 }}
         className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
@@ -69,12 +87,15 @@ export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterMo
           <div>
             <h3 className="font-extrabold text-base text-on-surface">Cover Letter Generator</h3>
             <p className="text-[11px] text-on-surface-variant/60 mt-0.5">
-              {app.role} at {app.company}
+              {app.role || "Role"} at {app.company || "Company"}
             </p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 text-on-surface-variant/40 transition-all">
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] text-on-surface-variant/30 font-medium mr-2">ESC to close</span>
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 text-on-surface-variant/40 transition-all">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -109,7 +130,12 @@ export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterMo
                 rows={10}
                 className="w-full text-[12px] font-medium text-on-surface bg-black/2 border border-black/8 rounded-xl p-3 resize-none focus:outline-none focus:border-muted-indigo/30 leading-relaxed"
               />
-              <p className="text-[10px] text-on-surface-variant/40">{coverLetter.split(/\s+/).length} words</p>
+              {/* FIX #6: Correct word count */}
+              <p className="text-[10px] text-on-surface-variant/40">
+                {wordCount} {wordCount === 1 ? "word" : "words"}
+                {wordCount > 0 && wordCount < 100 && <span className="text-amber-500 ml-2">⚠ Aim for 150–250 words</span>}
+                {wordCount > 300 && <span className="text-error ml-2">Too long — trim it down</span>}
+              </p>
             </div>
           )}
         </div>
@@ -124,11 +150,11 @@ export default function CoverLetterModal({ app, onClose, onSave }: CoverLetterMo
           {coverLetter && (
             <>
               <button onClick={handleCopy}
-                className="px-4 py-2.5 border border-black/10 text-[11px] font-bold text-on-surface-variant/70 rounded-xl hover:bg-black/5 transition-all">
+                className="px-4 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all">
                 Copy
               </button>
               <button onClick={handleSave}
-                className="px-4 py-2.5 border border-black/10 text-[11px] font-bold text-on-surface-variant/70 rounded-xl hover:bg-black/5 transition-all">
+                className="px-4 py-2.5 bg-[#1a1a1a] text-[#f5f5e8] text-[11px] font-bold rounded-xl hover:bg-[#2a2a2a] active:scale-95 transition-all">
                 Save
               </button>
             </>

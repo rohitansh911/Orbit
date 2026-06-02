@@ -40,6 +40,16 @@ export interface Application {
   role?: string;
   notes?: string;
   source?: string;
+  // New job-seeker fields
+  follow_up_date?: string;
+  interview_date?: string;
+  deadline?: string;
+  rejection_reason?: string;
+  rejection_stage?: string;
+  source_type?: "cold" | "warm" | "referral";
+  cover_letter?: string;
+  offer_amount?: string;
+  round_number?: number;
   created_at: string;
   updated_at: string;
 }
@@ -159,6 +169,29 @@ export function useOpportunities() {
   }, [profile, missions]);
 
   // ─── ACTIONS ──────────────────────────────────────────────────────────────
+
+  const updateApplication = useCallback(async (appId: string, updates: Partial<Application>) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("job_applications")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", appId).eq("uid", user.id);
+      if (error) throw error;
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, ...updates } : a));
+    } catch { toast.error("Failed to update"); }
+  }, [user]);
+
+  const rejectApplication = useCallback(async (appId: string, stage: string, reason: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("job_applications")
+        .update({ status: "rejected", rejection_stage: stage, rejection_reason: reason, updated_at: new Date().toISOString() })
+        .eq("id", appId).eq("uid", user.id);
+      if (error) throw error;
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: "rejected" as const, rejection_stage: stage, rejection_reason: reason } : a));
+      toast.success("Logged as rejected — building pattern data");
+    } catch { toast.error("Failed to log rejection"); }
+  }, [user]);
 
   const saveJob = useCallback(async (opp: Opportunity) => {
     if (!user) { toast.error("Sign in to save opportunities"); return; }
@@ -283,6 +316,6 @@ export function useOpportunities() {
 
   return {
     opportunities, applications, momentum, aiData, loading, aiLoading, error,
-    saveJob, applyJob, moveStage, deleteApplication, updateNotes, refetchAI,
+    saveJob, applyJob, moveStage, deleteApplication, updateNotes, updateApplication, rejectApplication, refetchAI,
   };
 }
